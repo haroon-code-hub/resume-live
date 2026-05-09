@@ -2,10 +2,10 @@ const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-let visitCount = 0;
+const { initDb, incrementVisitCount, getVisitCount } = require("./db");
 
-app.get("/", (req, res) => {
-  visitCount++;
+app.get("/", async (req, res) => {
+  const visitCount = await incrementVisitCount();
   res.send(`
     <html>
       <head>
@@ -48,12 +48,21 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.get("/visits", (req, res) => {
+app.get("/visits", async (req, res) => {
+  const visits = await getVisitCount();
+
   res.json({
-    visits: visitCount,
+    visits,
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
+  });
