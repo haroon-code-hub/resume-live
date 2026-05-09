@@ -2,8 +2,10 @@ const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+let visitCount = 0;
 
 app.get("/", (req, res) => {
+  visitCount++;
   res.send(`
     <html>
       <head>
@@ -33,6 +35,7 @@ app.get("/", (req, res) => {
           This app will be deployed using Docker, Kubernetes, CI/CD,
           monitoring, and Terraform.
         </p>
+        <p><strong>Visits:</strong> ${visitCount}</p>
       </body>
     </html>
   `);
@@ -42,6 +45,12 @@ app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
     service: "live-resume-devops",
+  });
+});
+
+app.get("/visits", (req, res) => {
+  res.json({
+    visits: visitCount,
   });
 });
 
