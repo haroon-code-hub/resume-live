@@ -10,3 +10,12 @@ docker pull saeedha/live-resume-devops:latest
 ## Run with Docker Compose
 
 docker compose up --build
+
+## Kubernetes Deployment
+
+Apply resources:
+
+kubectl apply -f k8s/
+
+## Get Pods
+kubectl get pods -n live-resume
