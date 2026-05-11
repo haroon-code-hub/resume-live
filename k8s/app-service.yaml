@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-resume-service
+  namespace: live-resume
+spec:
+  selector:
+    app: live-resume-app
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: NodePort
