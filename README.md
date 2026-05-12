@@ -1,10 +1,10 @@
 # Live Resume DevOps
 
-A Node.js resume app with PostgreSQL visitor counter. Aim to learn and practice DevOps tools 
+A Node.js resume app with PostgreSQL visitor counter. Aim to learn and practice DevOps tools
 
 ## Docker Image
 
-```bash
+````bash
 docker pull saeedha/live-resume-devops:latest
 
 ## Run with Docker Compose
@@ -38,7 +38,7 @@ kubectl create namespace monitoring
 
 helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring
-```
+````
 
 Check monitoring pods:
 
