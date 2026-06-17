@@ -155,7 +155,7 @@ resource "aws_instance" "k3s" {
     swapon /swapfile
     echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
 
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s ifconfig.me)" sh -
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $(curl -s ifconfig.me) --write-kubeconfig-mode 644" sh -
   EOF
 
   tags = { Name = "resume-live" }
