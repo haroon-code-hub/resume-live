@@ -1,17 +1,22 @@
-variable "hcloud_token" {
-  description = "Hetzner Cloud API token"
+variable "aws_region" {
+  description = "AWS region to deploy into"
   type        = string
-  sensitive   = true
+  default     = "eu-central-1"
 }
 
-variable "ssh_key_name" {
-  description = "Name of SSH key in Hetzner Cloud"
+variable "instance_type" {
+  description = "EC2 instance type for the k3s node"
   type        = string
-  default     = "resume-live-key"
+  default     = "t3.micro"
 }
 
 variable "ssh_public_key_path" {
   description = "Path to local SSH public key"
   type        = string
   default     = "~/.ssh/id_ed25519.pub"
+}
+
+variable "allowed_cidr" {
+  description = "Your IP in CIDR notation for SSH and kubectl access (e.g. 1.2.3.4/32)"
+  type        = string
 }
