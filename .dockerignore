@@ -3,3 +3,7 @@ npm-debug.log
 .env
 .git
 .DS_Store
+terraform/
+k8s/
+.github/
+*.md
