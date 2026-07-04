@@ -3,6 +3,11 @@ output "server_ip" {
   value       = aws_eip.k3s.public_ip
 }
 
+output "elastic_ip" {
+  description = "Elastic IP attached to the k3s server"
+  value       = aws_eip.k3s.public_ip
+}
+
 output "ssh_command" {
   description = "SSH command to connect to the server"
   value       = "ssh ubuntu@${aws_eip.k3s.public_ip}"
