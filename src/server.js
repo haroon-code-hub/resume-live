@@ -22,6 +22,8 @@ app.get("/", async (req, res) => {
 <body>
 <div class="container">
 
+  <button class="download-btn" onclick="window.print()">&#8595; Download as PDF</button>
+
   <header>
     <h1>Haroon Saeed</h1>
     <div class="subtitle">Software Developer | DevOps &amp; Cloud</div>
@@ -30,7 +32,8 @@ app.get("/", async (req, res) => {
       <a href="mailto:haroon.saeed@outlook.de">haroon.saeed@outlook.de</a> &nbsp;·&nbsp;
       +49 (176) 67055966 &nbsp;·&nbsp;
       <a href="https://github.com/haroon-code-hub" target="_blank">GitHub</a> &nbsp;·&nbsp;
-      <a href="https://linkedin.com" target="_blank">LinkedIn</a>
+      <a href="https://linkedin.com" target="_blank">LinkedIn</a> &nbsp;·&nbsp;
+      <a href="https://haroonsaeed.dev" target="_blank">haroonsaeed.dev</a>
     </div>
   </header>
 
@@ -95,7 +98,7 @@ app.get("/", async (req, res) => {
     </div>
   </section>
 
-  <section>
+  <section class="education-section">
     <h2>Education &amp; Training</h2>
     <div class="edu-item"><strong>M.Sc. Computer Science</strong> — University of Passau, Germany · 2016–2021</div>
     <div class="edu-item"><strong>B.Sc. Information Technology</strong> — Bahauddin Zakariya University, Pakistan · 2010–2014</div>
