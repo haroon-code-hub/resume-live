@@ -77,6 +77,8 @@ jobs:
           echo "$KUBECONFIG_DATA" > ~/.kube/config
           chmod 600 ~/.kube/config
 
+          kubectl apply -f k8s/ -n live-resume
+
           kubectl set image deployment/live-resume-app \
             live-resume-app=${{ secrets.DOCKERHUB_USERNAME }}/live-resume-devops:${{ github.sha }} \
             -n live-resume
