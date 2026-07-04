@@ -69,6 +69,9 @@ jobs:
     needs: push
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy to k3s
         env:
           KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_DATA }}
