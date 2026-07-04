@@ -7,13 +7,13 @@ variable "aws_region" {
 variable "instance_type" {
   description = "EC2 instance type for the k3s node"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"
 }
 
 variable "ssh_public_key_path" {
   description = "Path to local SSH public key"
   type        = string
-  default     = "~/.ssh/id_ed25519.pub"
+  default     = "~/.ssh/resume-live-key-new.pub"
 }
 
 variable "allowed_cidr" {

@@ -105,7 +105,7 @@ resource "aws_security_group" "k3s" {
 # --- EC2 Key Pair ---
 
 resource "aws_key_pair" "main" {
-  key_name   = "resume-live-key"
+  key_name   = "resume-live-key-new"
   public_key = file(var.ssh_public_key_path)
 }
 
