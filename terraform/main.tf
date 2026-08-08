@@ -77,11 +77,11 @@ resource "aws_security_group" "k3s" {
   }
 
   ingress {
-    description = "k3s API (kubectl access)"
+    description = "k3s API (kubectl access) - CI deploy connects from dynamic GitHub-hosted runner IPs, cannot be restricted to allowed_cidr"
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = [var.allowed_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {

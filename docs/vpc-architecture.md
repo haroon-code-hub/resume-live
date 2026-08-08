@@ -12,7 +12,7 @@ flowchart TB
         IGW["Internet Gateway\nresume-live-igw"]
 
         subgraph PublicSubnet["Public subnet — resume-live-public-subnet\n10.0.1.0/24 · eu-west-1a"]
-            SG["Security Group: resume-live-sg\n80/tcp, 443/tcp <- 0.0.0.0/0\n22/tcp, 6443/tcp <- allowed_cidr only"]
+            SG["Security Group: resume-live-sg\n80/tcp, 443/tcp, 6443/tcp <- 0.0.0.0/0\n22/tcp <- allowed_cidr only"]
             EC2["EC2 t3.small — 'resume-live'\nk3s node (single instance)"]
             subgraph K3s["k3s cluster (in-instance)"]
                 App["live-resume-app pods\n(Node.js, 2 replicas)"]
@@ -53,10 +53,10 @@ flowchart TB
 | 80 | tcp | `0.0.0.0/0` | HTTP (app) |
 | 443 | tcp | `0.0.0.0/0` | HTTPS (app) |
 | 22 | tcp | `var.allowed_cidr` | SSH |
-| 6443 | tcp | `var.allowed_cidr` | k3s API / kubectl |
+| 6443 | tcp | `0.0.0.0/0` | k3s API / kubectl |
 | all | all | `0.0.0.0/0` | egress |
 
-Until this audit, SSH and the kubectl API were both open to `0.0.0.0/0` — `terraform/variables.tf` already defined an `allowed_cidr` variable for exactly this, but `terraform/main.tf`'s security group never actually referenced it. Fixed by wiring `var.allowed_cidr` into both ingress rules (`terraform/main.tf`) and refreshing `terraform.tfvars` with a current IP — the previously stored value was a stale IPv6 address from a different ISP-assigned prefix, which would have locked out SSH/kubectl entirely if applied as-is. Verified live: SSH and 6443 are reachable from the allowed IP and the rule shows the restricted CIDR in AWS, not `0.0.0.0/0`.
+Until this audit, SSH and the kubectl API were both open to `0.0.0.0/0` — `terraform/variables.tf` already defined an `allowed_cidr` variable for exactly this, but `terraform/main.tf`'s security group never actually referenced it. Initially wired `var.allowed_cidr` into both ingress rules, which broke the CI deploy job: `.github/workflows` connects to the k3s API directly from GitHub-hosted runners using a stored `KUBECONFIG_DATA` secret, and those runners come from thousands of dynamic Azure-owned IP ranges (confirmed via `https://api.github.com/meta` — 7,297 CIDR blocks, none matching a single home IP). SSH stayed restricted to `var.allowed_cidr` since nothing in CI uses it (deploy connects straight to the API, no SSH step), but 6443 was reverted to `0.0.0.0/0` - the k3s API itself is the actual auth boundary there (kubeconfig client cert), same trust model as any other public API endpoint, whereas SSH is a full shell with only password/key auth. Verified live both ways: SSH restricted CIDR confirmed in AWS, 6443 reachable again after revert.
 
 ## Is EC2/app tier separated from RDS in public/private subnets?
 
