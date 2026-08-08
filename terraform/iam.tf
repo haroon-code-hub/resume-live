@@ -1,9 +1,13 @@
-# --- Least-privilege replacement for AdministratorAccess on the `admin` group ---
+# --- Scoped role for Terraform/automation, separate from the human admin identity ---
 #
-# Scoped to what this repo's Terraform actually provisions (EC2/VPC networking,
-# the S3 tfstate + CloudTrail-logs buckets, the DynamoDB lock table, CloudTrail,
-# Access Analyzer) plus read-only access to the AWS console surfaces already in
-# use (billing, Cost Explorer, Compute Optimizer, GuardDuty, DevOps Guru, Health).
+# iamadmin keeps AdministratorAccess - it's the one human/exploratory identity
+# for this solo project, and stripping it to project-scope just moves the
+# friction from "no least privilege" to "constant policy edits." Instead, the
+# least-privilege policy is scoped by what this repo's Terraform actually
+# provisions (EC2/VPC networking, the S3 tfstate + CloudTrail-logs buckets, the
+# DynamoDB lock table, CloudTrail, Access Analyzer) plus read-only console
+# access, and is attached to a dedicated role that iamadmin assumes for
+# infra changes - see docs/iam-audit.md.
 #
 # EC2 doesn't support resource-level permissions for most actions used here, so
 # it's scoped by aws:RequestedRegion instead of resource ARNs.
@@ -120,14 +124,12 @@ data "aws_iam_policy_document" "least_privilege" {
     sid    = "IAMSelfServiceForTerraform"
     effect = "Allow"
     actions = [
-      "iam:GetUser", "iam:GetGroup", "iam:ListAccessKeys",
-      "iam:ListAttachedGroupPolicies", "iam:ListGroupsForUser",
+      "iam:GetRole", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies",
       "iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListPolicyVersions",
       "iam:CreatePolicyVersion", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion",
     ]
     resources = [
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/iamadmin",
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/admin",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/resume-live-terraform-deployer",
       "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/resume-live-least-privilege",
     ]
   }
@@ -159,13 +161,31 @@ data "aws_iam_policy_document" "least_privilege" {
 
 resource "aws_iam_policy" "least_privilege" {
   name        = "resume-live-least-privilege"
-  description = "Scoped replacement for AdministratorAccess on the admin group - resume-live project only"
+  description = "Scoped policy for resume-live infra changes - assumed via resume-live-terraform-deployer, not attached to the admin group"
   policy      = data.aws_iam_policy_document.least_privilege.json
 }
 
-# Attached alongside AdministratorAccess for now so it can be validated with a
-# real `terraform plan` before AdministratorAccess is detached (see docs/iam-audit.md).
-resource "aws_iam_group_policy_attachment" "least_privilege" {
-  group      = "admin"
+data "aws_iam_policy_document" "terraform_deployer_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/iamadmin"]
+    }
+  }
+}
+
+resource "aws_iam_role" "terraform_deployer" {
+  name                 = "resume-live-terraform-deployer"
+  assume_role_policy   = data.aws_iam_policy_document.terraform_deployer_trust.json
+  max_session_duration = 3600
+
+  tags = { Name = "resume-live-terraform-deployer" }
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_deployer" {
+  role       = aws_iam_role.terraform_deployer.name
   policy_arn = aws_iam_policy.least_privilege.arn
 }
