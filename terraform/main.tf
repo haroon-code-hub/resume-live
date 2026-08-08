@@ -218,3 +218,111 @@ resource "aws_dynamodb_table" "tfstate_lock" {
 
   tags = { Name = "resume-live-tfstate-lock" }
 }
+
+# --- CloudTrail (audit log for IAM Access Analyzer policy generation) ---
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_s3_bucket" "cloudtrail" {
+  bucket = "resume-live-cloudtrail-logs-${data.aws_caller_identity.current.account_id}"
+
+  tags = { Name = "resume-live-cloudtrail-logs" }
+}
+
+resource "aws_s3_bucket_public_access_block" "cloudtrail" {
+  bucket                  = aws_s3_bucket.cloudtrail.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 365
+    }
+  }
+}
+
+data "aws_iam_policy_document" "cloudtrail_bucket" {
+  statement {
+    sid    = "AWSCloudTrailAclCheck"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:GetBucketAcl"]
+    resources = [aws_s3_bucket.cloudtrail.arn]
+  }
+
+  statement {
+    sid    = "AWSCloudTrailWrite"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.cloudtrail.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+  policy = data.aws_iam_policy_document.cloudtrail_bucket.json
+}
+
+resource "aws_cloudtrail" "main" {
+  name                          = "resume-live-trail"
+  s3_bucket_name                = aws_s3_bucket.cloudtrail.id
+  is_multi_region_trail         = true
+  include_global_service_events = true
+  enable_log_file_validation    = true
+
+  tags = { Name = "resume-live-trail" }
+
+  depends_on = [aws_s3_bucket_policy.cloudtrail]
+}
+
+# --- IAM Access Analyzer ---
+# External access analyzer: flags resources shared outside the account.
+resource "aws_accessanalyzer_analyzer" "external" {
+  analyzer_name = "resume-live-external-access"
+  type          = "ACCOUNT"
+
+  tags = { Name = "resume-live-external-access" }
+}
+
+# Unused access analyzer: continuously flags unused permissions/roles/keys -
+# the ongoing least-privilege signal, independent of the CloudTrail backlog.
+resource "aws_accessanalyzer_analyzer" "unused_access" {
+  analyzer_name = "resume-live-unused-access"
+  type          = "ACCOUNT_UNUSED_ACCESS"
+
+  configuration {
+    unused_access {
+      unused_access_age = 90
+    }
+  }
+
+  tags = { Name = "resume-live-unused-access" }
+}
